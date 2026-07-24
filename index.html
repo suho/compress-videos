@@ -3,120 +3,179 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Compress Videos — in your browser</title>
+    <title>Make Videos Smaller — private &amp; in your browser</title>
     <meta
       name="description"
-      content="Compress videos with FFmpeg (H.265/HEVC) entirely in your browser. No uploads, no server — your files never leave your device."
+      content="Make video files smaller with three simple choices. Everything happens privately in your browser."
     />
-    <!--
-      coi-serviceworker enables cross-origin isolation (COOP/COEP) on hosts
-      like GitHub Pages that can't set custom headers. This unlocks
-      SharedArrayBuffer, which the multi-threaded FFmpeg core needs.
-      Must load before the app. It reloads the page once on first visit.
-    -->
+    <!-- Enables the multi-threaded FFmpeg core on static hosts. -->
     <script src="./coi-serviceworker.js"></script>
   </head>
   <body>
     <main class="app">
       <header class="hero">
-        <h1>🎬 Compress Videos</h1>
+        <div class="hero-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m11 5h3a2 2 0 0 0 2-2v-3M9 8.5v7l6-3.5-6-3.5Z" />
+          </svg>
+        </div>
+        <h1>Make your videos smaller</h1>
         <p class="tagline">
-          Video compression powered by FFmpeg + WebAssembly.
-          Everything runs <strong>in your browser</strong> — your files never
-          get uploaded anywhere.
+          Choose how small you want them. Your videos stay on this device and
+          are never uploaded.
         </p>
       </header>
 
-      <section class="controls card">
-        <div class="row">
-          <label for="codec">
-            Codec
-            <span class="hint">H.264 works everywhere · HEVC is smaller but Firefox-only</span>
-          </label>
-          <select id="codec">
-            <option value="h264" selected>H.264 (recommended)</option>
-            <option value="h265">H.265 / HEVC</option>
-          </select>
-        </div>
-
-        <div class="row note-row">
-          <p id="codecNote" class="hint"></p>
-        </div>
-
-        <div class="row">
-          <label for="crf">
-            Quality (CRF)
-            <span class="hint">lower = better quality &amp; bigger file · 18–28 typical</span>
-          </label>
-          <div class="slider-wrap">
-            <input type="range" id="crf" min="0" max="51" value="26" />
-            <output id="crfValue">26</output>
+      <section class="settings" aria-labelledby="size-heading">
+        <div class="section-heading">
+          <div>
+            <span class="step">1</span>
+            <div>
+              <h2 id="size-heading">Choose a size</h2>
+              <p>Not sure? Balanced works well for most videos.</p>
+            </div>
           </div>
         </div>
 
-        <div class="row">
-          <label for="preset">
-            Preset
-            <span class="hint">slower = smaller file but longer to encode</span>
-          </label>
-          <select id="preset">
-            <option value="ultrafast">ultrafast</option>
-            <option value="superfast">superfast</option>
-            <option value="veryfast">veryfast</option>
-            <option value="faster">faster</option>
-            <option value="fast">fast</option>
-            <option value="medium" selected>medium</option>
-            <option value="slow">slow</option>
-            <option value="slower">slower</option>
-          </select>
+        <div class="size-options" role="radiogroup" aria-label="Compression size">
+          <button class="size-option" type="button" data-profile="quality" role="radio" aria-checked="false">
+            <span class="option-icon" aria-hidden="true">HD</span>
+            <span class="option-copy">
+              <strong>Better quality</strong>
+              <span>Keep more detail</span>
+            </span>
+            <span class="option-size">About 55–80% of original</span>
+          </button>
+
+          <button class="size-option selected" type="button" data-profile="balanced" role="radio" aria-checked="true">
+            <span class="recommended">Recommended</span>
+            <span class="option-icon" aria-hidden="true">✓</span>
+            <span class="option-copy">
+              <strong>Balanced</strong>
+              <span>Good quality, much smaller</span>
+            </span>
+            <span class="option-size">About 35–60% of original</span>
+          </button>
+
+          <button class="size-option" type="button" data-profile="smallest" role="radio" aria-checked="false">
+            <span class="option-icon option-icon-small" aria-hidden="true">⇲</span>
+            <span class="option-copy">
+              <strong>Smallest file</strong>
+              <span>Best for quick sharing</span>
+            </span>
+            <span class="option-size">About 20–40% of original</span>
+          </button>
         </div>
 
-        <div class="row">
-          <label for="audioBitrate">
-            Audio bitrate
-            <span class="hint">AAC</span>
-          </label>
-          <select id="audioBitrate">
-            <option value="96k">96 kbps</option>
-            <option value="128k" selected>128 kbps</option>
-            <option value="192k">192 kbps</option>
-            <option value="256k">256 kbps</option>
-          </select>
-        </div>
+        <details class="advanced card">
+          <summary>
+            <span>Advanced settings</span>
+            <span class="summary-hint">Optional</span>
+          </summary>
+          <div class="advanced-content">
+            <div class="row">
+              <label for="codec">
+                Video format
+                <span class="hint">H.264 works on the most devices</span>
+              </label>
+              <select id="codec">
+                <option value="h264" selected>H.264 (recommended)</option>
+                <option value="h265">H.265 / HEVC</option>
+              </select>
+            </div>
+
+            <div class="row note-row">
+              <p id="codecNote" class="hint"></p>
+            </div>
+
+            <div class="row">
+              <label for="crf">
+                Video quality
+                <span class="hint">Lower is clearer; higher is smaller</span>
+              </label>
+              <div class="slider-wrap">
+                <input type="range" id="crf" min="18" max="34" value="26" />
+                <output id="crfValue">26</output>
+              </div>
+            </div>
+
+            <div class="row">
+              <label for="preset">
+                Compression speed
+                <span class="hint">Slower can produce a slightly smaller file</span>
+              </label>
+              <select id="preset">
+                <option value="ultrafast">Fastest</option>
+                <option value="veryfast">Very fast</option>
+                <option value="fast">Fast</option>
+                <option value="medium" selected>Standard</option>
+                <option value="slow">Smaller file</option>
+                <option value="slower">Smallest file</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label for="audioBitrate">
+                Sound quality
+                <span class="hint">Higher uses more space</span>
+              </label>
+              <select id="audioBitrate">
+                <option value="96k">Standard</option>
+                <option value="128k" selected>Good</option>
+                <option value="192k">High</option>
+                <option value="256k">Very high</option>
+              </select>
+            </div>
+          </div>
+        </details>
       </section>
 
-      <section
-        id="dropzone"
-        class="dropzone"
-        tabindex="0"
-        role="button"
-        aria-label="Choose or drop video files"
-      >
-        <input type="file" id="fileInput" accept="video/*" multiple hidden />
-        <div class="dropzone-inner">
-          <div class="dropzone-icon">⬆️</div>
-          <p><strong>Drop videos here</strong> or click to browse</p>
-          <p class="hint">You can select multiple files. Nothing leaves your device.</p>
+      <section class="files-section" aria-labelledby="files-heading">
+        <div class="section-heading">
+          <div>
+            <span class="step">2</span>
+            <div>
+              <h2 id="files-heading">Add your videos</h2>
+              <p>Choose one or several files.</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="dropzone"
+          class="dropzone"
+          tabindex="0"
+          role="button"
+          aria-label="Choose or drop video files"
+        >
+          <input type="file" id="fileInput" accept="video/*" multiple hidden />
+          <div class="dropzone-inner">
+            <div class="dropzone-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+              </svg>
+            </div>
+            <p><strong>Choose videos</strong></p>
+            <p class="hint">or drag and drop them here</p>
+          </div>
+        </div>
+
+        <div id="estimateSummary" class="estimate-summary" hidden></div>
+        <ul id="fileList" class="file-list"></ul>
+
+        <div class="actions">
+          <button id="compressBtn" class="btn primary" disabled>
+            Make videos smaller
+          </button>
+          <button id="clearBtn" class="btn ghost" disabled>Clear list</button>
         </div>
       </section>
-
-      <div class="actions">
-        <button id="compressBtn" class="btn primary" disabled>
-          Compress
-        </button>
-        <button id="clearBtn" class="btn ghost" disabled>Clear</button>
-      </div>
-
-      <ul id="fileList" class="file-list"></ul>
 
       <div id="status" class="status" role="status" aria-live="polite"></div>
 
       <footer class="foot">
-        <p>
-          Runs FFmpeg in your browser (WebAssembly) ·
-          <code>yuv420p · aac · -map_metadata -1 · +faststart</code> ·
-          static site, no backend.
-        </p>
+        <span class="privacy-mark" aria-hidden="true">✓</span>
+        <p><strong>Private by design.</strong> Your videos never leave this device.</p>
       </footer>
     </main>
 

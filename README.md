@@ -4,7 +4,8 @@ Compress videos **entirely in your browser** with FFmpeg compiled to WebAssembly
 No server, no uploads — your files never leave your device. Deployable for free on
 GitHub Pages.
 
-Drop one or many videos, tune quality, and download the compressed results.
+Drop one or many videos, choose one of three simple size options, and download the
+compressed results. Advanced controls remain available for people who need them.
 
 ## How it works
 
@@ -22,7 +23,9 @@ ffmpeg -i input.mp4 -vcodec libx264 -crf 26 -preset medium \
   -pix_fmt yuv420p -acodec aac -b:a 128k -map_metadata -1 -movflags +faststart output.mp4
 ```
 
-Adjustable in the UI: **codec, CRF (quality), preset, audio bitrate**. Metadata is
+The default experience offers **Better quality**, **Balanced**, and **Smallest
+file**, plus a clearly labelled estimated output-size range. Codec, CRF, speed,
+and audio bitrate remain available under **Advanced settings**. Metadata is
 stripped (`-map_metadata -1`) and `+faststart` is applied for instant web playback.
 
 ## ⚠️ About H.265 / HEVC

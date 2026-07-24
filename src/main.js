@@ -25,12 +25,36 @@ const presetSelect = document.getElementById('preset')
 const audioSelect = document.getElementById('audioBitrate')
 const codecSelect = document.getElementById('codec')
 const codecNote = document.getElementById('codecNote')
+const sizeOptions = [...document.querySelectorAll('.size-option')]
+const estimateSummary = document.getElementById('estimateSummary')
 
 // ---- State ----
 /** @type {{file: File, id: string, status: string, progress?: number, resultUrl?: string, outName?: string, outSize?: number}[]} */
 let items = []
 const cores = {} // codec-family -> { ffmpeg, loading }
 let running = false
+let selectedProfile = 'balanced'
+
+const profiles = {
+  quality: {
+    crf: '22',
+    preset: 'medium',
+    audioBitrate: '192k',
+    estimate: [0.55, 0.8]
+  },
+  balanced: {
+    crf: '26',
+    preset: 'medium',
+    audioBitrate: '128k',
+    estimate: [0.35, 0.6]
+  },
+  smallest: {
+    crf: '30',
+    preset: 'slow',
+    audioBitrate: '96k',
+    estimate: [0.2, 0.4]
+  }
+}
 
 // ---- FFmpeg lifecycle (one instance per core type, lazily loaded) ----
 async function getFFmpeg(multiThread) {
@@ -46,7 +70,7 @@ async function getFFmpeg(multiThread) {
       if (debug) console.log('[ffmpeg]', message)
     })
 
-    setStatus(`Loading FFmpeg (${multiThread ? 'HEVC' : 'H.264'} engine)…`)
+    setStatus('Getting the compressor ready…')
 
     const config = {
       coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
@@ -95,6 +119,7 @@ function addFiles(fileList) {
 
 function render() {
   fileListEl.innerHTML = ''
+  const estimate = getEstimateRange()
   for (const item of items) {
     const li = document.createElement('li')
     li.className = 'file-item'
@@ -104,10 +129,10 @@ function render() {
     info.className = 'file-info'
     info.innerHTML = `
       <span class="file-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</span>
-      <span class="file-meta">${formatBytes(item.file.size)}${
+      <span class="file-meta">${
         item.outSize
-          ? ` → <strong>${formatBytes(item.outSize)}</strong> <span class="savings">(${savings(item.file.size, item.outSize)})</span>`
-          : ''
+          ? `${formatBytes(item.file.size)} → <strong>${formatBytes(item.outSize)}</strong> <span class="savings">${savings(item.file.size, item.outSize)}</span>`
+          : `${formatBytes(item.file.size)} <span class="meta-divider">•</span> Estimated: <strong>${formatEstimate(item.file.size, estimate)}</strong>`
       }</span>
     `
 
@@ -131,7 +156,7 @@ function render() {
             : 'processing…'
           : item.status === 'error'
             ? 'error'
-            : 'queued'
+            : 'ready'
       right.appendChild(badge)
     }
 
@@ -143,7 +168,24 @@ function render() {
   const hasFiles = items.length > 0
   compressBtn.disabled = !hasFiles || running
   clearBtn.disabled = !hasFiles || running
-  compressBtn.textContent = running ? 'Compressing…' : `Compress${hasFiles ? ` (${items.length})` : ''}`
+  compressBtn.textContent = running
+    ? 'Making videos smaller…'
+    : `Make ${hasFiles ? `${items.length} video${items.length === 1 ? '' : 's'}` : 'videos'} smaller`
+
+  if (hasFiles) {
+    const totalBytes = items.reduce((sum, item) => sum + item.file.size, 0)
+    estimateSummary.hidden = false
+    estimateSummary.innerHTML = `
+      <div>
+        <span class="estimate-label">Estimated total after compression</span>
+        <strong>${formatEstimate(totalBytes, estimate)}</strong>
+      </div>
+      <p>Estimate only — the result depends on your video.</p>
+    `
+  } else {
+    estimateSummary.hidden = true
+    estimateSummary.innerHTML = ''
+  }
 }
 
 // ---- Compression ----
@@ -178,7 +220,7 @@ async function compressAll() {
     item.status = 'processing'
     item.progress = 0
     render()
-    setStatus(`Compressing “${item.file.name}” (${done + 1}/${items.length})…`)
+    setStatus(`Making “${item.file.name}” smaller (${done + 1} of ${items.length})…`)
 
     const inName = 'input_' + sanitize(item.file.name)
     const outName = makeOutName(item.file.name, useHevc)
@@ -219,7 +261,7 @@ async function compressAll() {
   const ok = items.filter((i) => i.status === 'done').length
   const failed = items.filter((i) => i.status === 'error').length
   setStatus(
-    `✅ Done — ${ok} compressed${failed ? `, ${failed} failed` : ''}. Click Download on each file.`,
+    `Done — ${ok} video${ok === 1 ? '' : 's'} ready${failed ? `, ${failed} could not be compressed` : ''}.`,
     failed ? 'error' : 'success'
   )
 }
@@ -265,7 +307,61 @@ function formatBytes(bytes) {
 
 function savings(before, after) {
   const pct = (1 - after / before) * 100
-  return pct >= 0 ? `−${pct.toFixed(0)}%` : `+${Math.abs(pct).toFixed(0)}%`
+  return pct >= 0 ? `${pct.toFixed(0)}% smaller` : `${Math.abs(pct).toFixed(0)}% larger`
+}
+
+function getEstimateRange() {
+  const profile = profiles[selectedProfile]
+  const settingsMatchProfile =
+    crfInput.value === profile.crf &&
+    presetSelect.value === profile.preset &&
+    audioSelect.value === profile.audioBitrate &&
+    codecSelect.value === 'h264'
+
+  if (settingsMatchProfile) return profile.estimate
+
+  const crf = Number(crfInput.value)
+  const codecFactor = codecSelect.value === 'h265' ? 0.78 : 1
+  const presetFactors = {
+    ultrafast: 1.18,
+    veryfast: 1.1,
+    fast: 1.04,
+    medium: 1,
+    slow: 0.96,
+    slower: 0.93
+  }
+  const audioFactors = { '96k': 0.94, '128k': 1, '192k': 1.08, '256k': 1.16 }
+  const midpoint =
+    0.47 *
+    Math.pow(2, (26 - crf) / 8) *
+    codecFactor *
+    (presetFactors[presetSelect.value] ?? 1) *
+    (audioFactors[audioSelect.value] ?? 1)
+
+  return [Math.max(0.1, midpoint * 0.72), Math.min(1.15, midpoint * 1.28)]
+}
+
+function formatEstimate(originalBytes, [lowRatio, highRatio]) {
+  return `${formatBytes(originalBytes * lowRatio)}–${formatBytes(originalBytes * highRatio)}`
+}
+
+function selectProfile(profileName) {
+  const profile = profiles[profileName]
+  if (!profile || running) return
+
+  selectedProfile = profileName
+  crfInput.value = profile.crf
+  crfValue.textContent = profile.crf
+  presetSelect.value = profile.preset
+  audioSelect.value = profile.audioBitrate
+  codecSelect.value = 'h264'
+
+  for (const option of sizeOptions) {
+    const selected = option.dataset.profile === profileName
+    option.classList.toggle('selected', selected)
+    option.setAttribute('aria-checked', String(selected))
+  }
+  render()
 }
 
 function escapeHtml(s) {
@@ -280,7 +376,14 @@ function setStatus(msg, kind = '') {
 // ---- Events ----
 crfInput.addEventListener('input', () => {
   crfValue.textContent = crfInput.value
+  render()
 })
+sizeOptions.forEach((option) =>
+  option.addEventListener('click', () => selectProfile(option.dataset.profile))
+)
+;[codecSelect, presetSelect, audioSelect].forEach((control) =>
+  control.addEventListener('change', render)
+)
 
 dropzone.addEventListener('click', () => fileInput.click())
 dropzone.addEventListener('keydown', (e) => {
