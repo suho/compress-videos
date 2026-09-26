@@ -13,14 +13,21 @@
   </head>
   <body>
     <main class="app">
+      <div class="topbar">
+        <div class="lang-switch" role="group" data-i18n-aria-label="lang.label" aria-label="Language">
+          <button type="button" data-lang="en" lang="en" title="English" aria-pressed="true">EN</button>
+          <button type="button" data-lang="vi" lang="vi" title="Tiếng Việt" aria-pressed="false">VI</button>
+        </div>
+      </div>
+
       <header class="hero">
         <div class="hero-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m11 5h3a2 2 0 0 0 2-2v-3M9 8.5v7l6-3.5-6-3.5Z" />
           </svg>
         </div>
-        <h1>Make your videos smaller</h1>
-        <p class="tagline">
+        <h1 data-i18n="hero.title">Make your videos smaller</h1>
+        <p class="tagline" data-i18n="hero.tagline">
           Choose how small you want them. Your videos stay on this device and
           are never uploaded.
         </p>
@@ -31,56 +38,56 @@
           <div>
             <span class="step">1</span>
             <div>
-              <h2 id="size-heading">Choose a size</h2>
-              <p>Not sure? Balanced works well for most videos.</p>
+              <h2 id="size-heading" data-i18n="size.heading">Choose a size</h2>
+              <p data-i18n="size.hint">Not sure? Balanced works well for most videos.</p>
             </div>
           </div>
         </div>
 
-        <div class="size-options" role="radiogroup" aria-label="Compression size">
+        <div class="size-options" role="radiogroup" data-i18n-aria-label="size.groupLabel" aria-label="Compression size">
           <button class="size-option" type="button" data-profile="quality" role="radio" aria-checked="false">
             <span class="option-icon" aria-hidden="true">HD</span>
             <span class="option-copy">
-              <strong>Better quality</strong>
-              <span>Keep more detail</span>
+              <strong data-i18n="profile.quality.title">Better quality</strong>
+              <span data-i18n="profile.quality.desc">Keep more detail</span>
             </span>
-            <span class="option-size">About 55–80% of original</span>
+            <span class="option-size"></span>
           </button>
 
           <button class="size-option selected" type="button" data-profile="balanced" role="radio" aria-checked="true">
-            <span class="recommended">Recommended</span>
+            <span class="recommended" data-i18n="size.recommended">Recommended</span>
             <span class="option-icon" aria-hidden="true">✓</span>
             <span class="option-copy">
-              <strong>Balanced</strong>
-              <span>Good quality, much smaller</span>
+              <strong data-i18n="profile.balanced.title">Balanced</strong>
+              <span data-i18n="profile.balanced.desc">Good quality, much smaller</span>
             </span>
-            <span class="option-size">About 35–60% of original</span>
+            <span class="option-size"></span>
           </button>
 
           <button class="size-option" type="button" data-profile="smallest" role="radio" aria-checked="false">
             <span class="option-icon option-icon-small" aria-hidden="true">⇲</span>
             <span class="option-copy">
-              <strong>Smallest file</strong>
-              <span>Best for quick sharing</span>
+              <strong data-i18n="profile.smallest.title">Smallest file</strong>
+              <span data-i18n="profile.smallest.desc">Best for quick sharing</span>
             </span>
-            <span class="option-size">About 20–40% of original</span>
+            <span class="option-size"></span>
           </button>
         </div>
 
         <details class="advanced card">
           <summary>
-            <span>Advanced settings</span>
-            <span class="summary-hint">Optional</span>
+            <span data-i18n="advanced.title">Advanced settings</span>
+            <span class="summary-hint" data-i18n="advanced.optional">Optional</span>
           </summary>
           <div class="advanced-content">
             <div class="row">
               <label for="codec">
-                Video format
-                <span class="hint">H.264 works on the most devices</span>
+                <span data-i18n="codec.label">Video format</span>
+                <span class="hint" data-i18n="codec.hint">H.264 works on the most devices</span>
               </label>
               <select id="codec">
-                <option value="h264" selected>H.264 (recommended)</option>
-                <option value="h265">H.265 / HEVC</option>
+                <option value="h264" selected data-i18n="codec.h264">H.264 (recommended)</option>
+                <option value="h265" data-i18n="codec.h265">H.265 / HEVC</option>
               </select>
             </div>
 
@@ -90,8 +97,8 @@
 
             <div class="row">
               <label for="crf">
-                Video quality
-                <span class="hint">Lower is clearer; higher is smaller</span>
+                <span data-i18n="crf.label">Video quality</span>
+                <span class="hint" data-i18n="crf.hint">Lower is clearer; higher is smaller</span>
               </label>
               <div class="slider-wrap">
                 <input type="range" id="crf" min="18" max="34" value="26" />
@@ -101,29 +108,29 @@
 
             <div class="row">
               <label for="preset">
-                Compression speed
-                <span class="hint">Slower can produce a slightly smaller file</span>
+                <span data-i18n="preset.label">Compression speed</span>
+                <span class="hint" data-i18n="preset.hint">Slower can produce a slightly smaller file</span>
               </label>
               <select id="preset">
-                <option value="ultrafast">Fastest</option>
-                <option value="veryfast">Very fast</option>
-                <option value="fast">Fast</option>
-                <option value="medium" selected>Standard</option>
-                <option value="slow">Smaller file</option>
-                <option value="slower">Smallest file</option>
+                <option value="ultrafast" data-i18n="preset.ultrafast">Fastest</option>
+                <option value="veryfast" data-i18n="preset.veryfast">Very fast</option>
+                <option value="fast" data-i18n="preset.fast">Fast</option>
+                <option value="medium" data-i18n="preset.medium" selected>Standard</option>
+                <option value="slow" data-i18n="preset.slow">Smaller file</option>
+                <option value="slower" data-i18n="preset.slower">Smallest file</option>
               </select>
             </div>
 
             <div class="row">
               <label for="audioBitrate">
-                Sound quality
-                <span class="hint">Higher uses more space</span>
+                <span data-i18n="audio.label">Sound quality</span>
+                <span class="hint" data-i18n="audio.hint">Higher uses more space</span>
               </label>
               <select id="audioBitrate">
-                <option value="96k">Standard</option>
-                <option value="128k" selected>Good</option>
-                <option value="192k">High</option>
-                <option value="256k">Very high</option>
+                <option value="96k" data-i18n="audio.96k">Standard</option>
+                <option value="128k" data-i18n="audio.128k" selected>Good</option>
+                <option value="192k" data-i18n="audio.192k">High</option>
+                <option value="256k" data-i18n="audio.256k">Very high</option>
               </select>
             </div>
           </div>
@@ -135,8 +142,8 @@
           <div>
             <span class="step">2</span>
             <div>
-              <h2 id="files-heading">Add your videos</h2>
-              <p>Choose one or several files.</p>
+              <h2 id="files-heading" data-i18n="files.heading">Add your videos</h2>
+              <p data-i18n="files.hint">Choose one or several files.</p>
             </div>
           </div>
         </div>
@@ -146,6 +153,7 @@
           class="dropzone"
           tabindex="0"
           role="button"
+          data-i18n-aria-label="dropzone.label"
           aria-label="Choose or drop video files"
         >
           <input type="file" id="fileInput" accept="video/*" multiple hidden />
@@ -155,8 +163,8 @@
                 <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
               </svg>
             </div>
-            <p><strong>Choose videos</strong></p>
-            <p class="hint">or drag and drop them here</p>
+            <p><strong data-i18n="dropzone.title">Choose videos</strong></p>
+            <p class="hint" data-i18n="dropzone.hint">or drag and drop them here</p>
           </div>
         </div>
 
@@ -167,7 +175,7 @@
           <button id="compressBtn" class="btn primary" disabled>
             Make videos smaller
           </button>
-          <button id="clearBtn" class="btn ghost" disabled>Clear list</button>
+          <button id="clearBtn" class="btn ghost" disabled data-i18n="action.clear">Clear list</button>
         </div>
       </section>
 
@@ -175,7 +183,7 @@
 
       <footer class="foot">
         <span class="privacy-mark" aria-hidden="true">✓</span>
-        <p><strong>Private by design.</strong> Your videos never leave this device.</p>
+        <p><strong data-i18n="footer.title">Private by design.</strong> <span data-i18n="footer.body">Your videos never leave this device.</span></p>
       </footer>
     </main>
 
