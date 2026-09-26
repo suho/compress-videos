@@ -1,5 +1,6 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import { applyTranslations, formatNumber, getLang, onLangChange, setLang, t } from './i18n.js'
 import './style.css'
 
 const CORE_VERSION = '0.12.10'
@@ -27,6 +28,7 @@ const codecSelect = document.getElementById('codec')
 const codecNote = document.getElementById('codecNote')
 const sizeOptions = [...document.querySelectorAll('.size-option')]
 const estimateSummary = document.getElementById('estimateSummary')
+const langButtons = [...document.querySelectorAll('[data-lang]')]
 
 // ---- State ----
 /** @type {{file: File, id: string, status: string, progress?: number, resultUrl?: string, outName?: string, outSize?: number}[]} */
@@ -34,6 +36,8 @@ let items = []
 const cores = {} // codec-family -> { ffmpeg, loading }
 let running = false
 let selectedProfile = 'balanced'
+/** Last status as a message key, so it can be re-translated on language change. */
+let status = { key: '', params: {}, kind: '' }
 
 const profiles = {
   quality: {
@@ -70,7 +74,7 @@ async function getFFmpeg(multiThread) {
       if (debug) console.log('[ffmpeg]', message)
     })
 
-    setStatus('Getting the compressor ready…')
+    setStatus('status.loading')
 
     const config = {
       coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
@@ -93,12 +97,10 @@ function initCodecOptions() {
   const hevcOption = [...codecSelect.options].find((o) => o.value === 'h265')
   if (!isFirefox) {
     hevcOption.disabled = true
-    hevcOption.textContent = 'H.265 / HEVC — Firefox only'
-    codecNote.textContent =
-      'H.265/HEVC is disabled: a known ffmpeg.wasm bug hangs it in Chrome/Safari. It works in Firefox, or use H.264 here.'
+    hevcOption.dataset.i18n = 'codec.h265FirefoxOnly'
+    codecNote.dataset.i18n = 'codec.noteDisabled'
   } else {
-    codecNote.textContent =
-      'H.265/HEVC produces smaller files but encodes slowly in-browser. H.264 is faster and universally compatible.'
+    codecNote.dataset.i18n = 'codec.noteFirefox'
   }
 }
 
@@ -131,8 +133,8 @@ function render() {
       <span class="file-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</span>
       <span class="file-meta">${
         item.outSize
-          ? `${formatBytes(item.file.size)} → <strong>${formatBytes(item.outSize)}</strong> <span class="savings">${savings(item.file.size, item.outSize)}</span>`
-          : `${formatBytes(item.file.size)} <span class="meta-divider">•</span> Estimated: <strong>${formatEstimate(item.file.size, estimate)}</strong>`
+          ? `${formatBytes(item.file.size)} → <strong>${formatBytes(item.outSize)}</strong> ${savings(item.file.size, item.outSize)}`
+          : `${formatBytes(item.file.size)} <span class="meta-divider">•</span> ${t('estimate.file')} <strong>${formatEstimate(item.file.size, estimate)}</strong>`
       }</span>
     `
 
@@ -144,7 +146,7 @@ function render() {
       a.className = 'btn small'
       a.href = item.resultUrl
       a.download = item.outName
-      a.textContent = '⬇ Download'
+      a.textContent = t('file.download')
       right.appendChild(a)
     } else {
       const badge = document.createElement('span')
@@ -153,10 +155,10 @@ function render() {
         item.status === 'processing'
           ? item.progress != null
             ? `${Math.round(item.progress * 100)}%`
-            : 'processing…'
+            : t('file.processing')
           : item.status === 'error'
-            ? 'error'
-            : 'ready'
+            ? t('file.error')
+            : t('file.ready')
       right.appendChild(badge)
     }
 
@@ -169,18 +171,20 @@ function render() {
   compressBtn.disabled = !hasFiles || running
   clearBtn.disabled = !hasFiles || running
   compressBtn.textContent = running
-    ? 'Making videos smaller…'
-    : `Make ${hasFiles ? `${items.length} video${items.length === 1 ? '' : 's'}` : 'videos'} smaller`
+    ? t('action.compressing')
+    : hasFiles
+      ? t('action.compressCount', { n: items.length })
+      : t('action.compress')
 
   if (hasFiles) {
     const totalBytes = items.reduce((sum, item) => sum + item.file.size, 0)
     estimateSummary.hidden = false
     estimateSummary.innerHTML = `
       <div>
-        <span class="estimate-label">Estimated total after compression</span>
+        <span class="estimate-label">${t('estimate.total')}</span>
         <strong>${formatEstimate(totalBytes, estimate)}</strong>
       </div>
-      <p>Estimate only — the result depends on your video.</p>
+      <p>${t('estimate.note')}</p>
     `
   } else {
     estimateSummary.hidden = true
@@ -204,7 +208,7 @@ async function compressAll() {
     instance = await getFFmpeg(useHevc) // HEVC -> mt core, H.264 -> st core
   } catch (err) {
     console.error(err)
-    setStatus(`❌ Failed to load FFmpeg: ${err.message}`, 'error')
+    setStatus('status.loadFailed', { error: err.message }, 'error')
     running = false
     render()
     return
@@ -220,7 +224,7 @@ async function compressAll() {
     item.status = 'processing'
     item.progress = 0
     render()
-    setStatus(`Making “${item.file.name}” smaller (${done + 1} of ${items.length})…`)
+    setStatus('status.processing', { name: item.file.name, index: done + 1, total: items.length })
 
     const inName = 'input_' + sanitize(item.file.name)
     const outName = makeOutName(item.file.name, useHevc)
@@ -247,7 +251,7 @@ async function compressAll() {
     } catch (err) {
       console.error(err)
       item.status = 'error'
-      setStatus(`❌ Error compressing “${item.file.name}”: ${err.message}`, 'error')
+      setStatus('status.fileError', { name: item.file.name, error: err.message }, 'error')
     } finally {
       instance.off('progress', onProgress)
       done++
@@ -260,10 +264,7 @@ async function compressAll() {
 
   const ok = items.filter((i) => i.status === 'done').length
   const failed = items.filter((i) => i.status === 'error').length
-  setStatus(
-    `Done — ${ok} video${ok === 1 ? '' : 's'} ready${failed ? `, ${failed} could not be compressed` : ''}.`,
-    failed ? 'error' : 'success'
-  )
+  setStatus('status.done', { ok, failed }, failed ? 'error' : 'success')
 }
 
 // Mirrors the requested command; H.264 swaps the codec/tag but keeps the same
@@ -302,12 +303,14 @@ function formatBytes(bytes) {
   const k = 1024
   const units = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${(bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+  return `${formatNumber(bytes / Math.pow(k, i), i === 0 ? 0 : 1)} ${units[i]}`
 }
 
 function savings(before, after) {
-  const pct = (1 - after / before) * 100
-  return pct >= 0 ? `${pct.toFixed(0)}% smaller` : `${Math.abs(pct).toFixed(0)}% larger`
+  const pct = Math.round((1 - after / before) * 100)
+  if (pct > 0) return `<span class="savings">${t('savings.smaller', { pct: formatNumber(pct) })}</span>`
+  if (pct < 0) return `<span class="savings worse">${t('savings.larger', { pct: formatNumber(-pct) })}</span>`
+  return `<span class="savings same">${t('savings.same')}</span>`
 }
 
 function getEstimateRange() {
@@ -368,9 +371,38 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 }
 
-function setStatus(msg, kind = '') {
-  statusEl.textContent = msg
-  statusEl.className = `status ${kind}`
+function setStatus(key, params = {}, kind = '') {
+  status = { key, params, kind }
+  renderStatus()
+}
+
+function renderStatus() {
+  statusEl.textContent = status.key ? t(status.key, status.params) : ''
+  statusEl.className = `status ${status.kind}`
+}
+
+function renderProfileEstimates() {
+  for (const option of sizeOptions) {
+    const [low, high] = profiles[option.dataset.profile].estimate
+    option.querySelector('.option-size').textContent = t('size.estimate', {
+      low: formatNumber(low * 100),
+      high: formatNumber(high * 100)
+    })
+  }
+}
+
+function renderLangSwitch() {
+  for (const button of langButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.lang === getLang()))
+  }
+}
+
+function renderAll() {
+  applyTranslations()
+  renderLangSwitch()
+  renderProfileEstimates()
+  renderStatus()
+  render()
 }
 
 // ---- Events ----
@@ -422,6 +454,10 @@ clearBtn.addEventListener('click', () => {
   render()
   setStatus('')
 })
+langButtons.forEach((button) =>
+  button.addEventListener('click', () => setLang(button.dataset.lang))
+)
+onLangChange(renderAll)
 
 initCodecOptions()
-render()
+renderAll()

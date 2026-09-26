@@ -34,6 +34,33 @@ body {
   padding: 56px 24px 64px;
 }
 
+.topbar { display: flex; justify-content: flex-end; margin: -32px 0 8px; }
+.lang-switch {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.lang-switch button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.lang-switch button:hover { color: var(--text); }
+.lang-switch button[aria-pressed="true"] { background: var(--primary); color: white; }
+.lang-switch button:focus-visible { outline: 3px solid rgba(91, 92, 226, .25); outline-offset: 1px; }
+
 .hero { text-align: center; margin-bottom: 50px; }
 .hero-icon {
   width: 54px;
@@ -65,6 +92,7 @@ body {
   margin: 0 auto;
   max-width: 510px;
   font-size: 1.06rem;
+  text-wrap: pretty;
 }
 
 .card {
@@ -338,7 +366,9 @@ a.btn { text-decoration: none; display: inline-block; }
   max-width: 100%;
 }
 .file-meta { color: var(--muted); font-size: .85rem; }
-.savings { color: var(--accent); font-weight: 600; }
+.savings { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.savings.worse { color: var(--danger); }
+.savings.same { color: var(--muted); }
 .meta-divider { padding: 0 3px; color: var(--border-strong); }
 .file-right { flex-shrink: 0; }
 .badge {
@@ -383,6 +413,7 @@ a.btn { text-decoration: none; display: inline-block; }
 
 @media (max-width: 650px) {
   .app { padding: 35px 16px 45px; }
+  .topbar { margin-top: -19px; }
   .hero { margin-bottom: 38px; }
   .size-options { grid-template-columns: 1fr; }
   .size-option {
