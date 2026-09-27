@@ -151,6 +151,7 @@ export const messages = {
 
 export const languages = Object.keys(messages)
 const STORAGE_KEY = 'lang'
+const DEFAULT_LANG = 'vi'
 const listeners = new Set()
 let lang = detectLang()
 
@@ -159,9 +160,7 @@ function detectLang() {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (languages.includes(saved)) return saved
   } catch {}
-  const preferred = globalThis.navigator?.languages ?? []
-  const match = preferred.map((l) => l?.slice(0, 2).toLowerCase()).find((l) => languages.includes(l))
-  return match ?? 'en'
+  return DEFAULT_LANG
 }
 
 export function getLang() {
